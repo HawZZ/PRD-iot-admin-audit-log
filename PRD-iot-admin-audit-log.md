@@ -2,8 +2,8 @@
 
 Source: 2026-05-19 用户需求输入，`/Users/user/Downloads/IOT 审计日志技术方案.pdf`，[[AIoT-Platform/iot-admin-audit-log/context]]，[[AIoT-Platform/iot-admin-audit-log/decision-log]]
 
-版本：V1.2  
-状态：批次口径收敛评审稿  
+版本：V1.3  
+状态：字段样例补充评审稿  
 最后更新：2026-06-10
 
 ## 1. 产品概述
@@ -210,12 +210,33 @@ flowchart TD
 | `traceId` | `traceId` | 链路 ID |
 | 操作 | 无 | 仅为“查看”按钮，不作为筛选项 |
 
+列表字段样例、枚举和限制：
+
+| 列表字段 | 技术字段 / 来源 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 操作时间 | `operation_time` / `created_at` | `2026-06-10 17:42:18` | 默认按操作时间倒序；筛选支持开始时间、结束时间；时间范围为空时不限制对应边界 |
+| 业务流水号 | `serial_code` | `AUD-20260610-0006` | 全局唯一、不可编辑；用于列表展示、详情标题和明细关联；支持按完整或部分流水号查询 |
+| 主体 | `operator_subject`、`operator_type` | `user` | 本期列表展示 `user` / `unknown`；不展示当前用户表的实时姓名 |
+| uid / 姓名快照 | `operator_uid`、`operator_name` | `UID-10427` / `李*` | 姓名为日志产生时快照；展示脱敏值；不随用户改名或删除账号变化 |
+| 分类 | `audit_category` | `DML` | 枚举：`AUTH`、`DML`、`EXPORT` |
+| 操作类型 | `audit_action` | `UPDATE`，展示为“修改” | 枚举：`LOGIN` 登录、`LOGOUT` 登出、`INSERT` 新增、`UPDATE` 修改、`DELETE` 删除、`EXPORT` 导出 |
+| 操作方式 | `operation_mode` | `BATCH`，展示为“批量操作” | 枚举仅包含 `SINGLE` 单体操作、`BATCH` 批量操作；不承载新增 / 修改 / 删除含义 |
+| 模块 | `module_name` / `module_code` | `智能产品` | 原型枚举：认证中心、智能产品、配置中心、App管理、系统管理；实际以 IoT Admin 模块注册为准 |
+| 业务主键 | `resource_id`，辅助展示 `resource_type`、`resource_name` | `2042155626574495745` | 非多租户场景，不展示 `company_code`；列表副文案展示资源类型和业务对象名称 |
+| 结果 | `result_status` | `SUCCESS`，展示为“成功” | 枚举：`SUCCESS`、`FAIL` |
+| IP | `client_ip` | `10.24.*.*` | 展示脱敏 IP；不在页面展示完整 IP；支持按脱敏后可见片段查询 |
+| `traceId` | `trace_id` | `trace-product-002` | 链路 ID；支持完整或部分查询 |
+| 操作 | 前端操作 | 查看 | 仅允许打开详情；不提供新增、编辑、删除、导出或回滚 |
+
 页面规则：
 
 - 列表只读，不提供新增、编辑、删除和导出入口。
 - 默认按操作时间倒序。
+- 原型页大小为 8 条，仅用于交互演示；实际分页大小由前后端接口约定。
 - 列表查询、筛选、翻页不记录审计日志。
 - 空状态提示用户调整筛选条件。
+- 筛选项必须和列表字段匹配；除“操作”列外，列表业务字段均需有对应筛选项。
+- 操作类型和操作方式共同表达批量含义，例如“新增 + 批量操作”表示平台批量导入新增。
 
 ### 11.2 审计日志详情
 
@@ -228,6 +249,98 @@ flowchart TD
 | 变更明细 | 表 / 资源、操作类型、主键或业务键、变更前、变更后、影响行数 |
 | 批量信息 | 操作方式、批次 ID、对象范围、总行数、成功行数、失败行数、统一目标值、导入文件名、逐行结果 |
 | 导出信息 | 导出条件、导出行数、字段范围、文件名、文件大小、生成时间 |
+
+详情页采用抽屉方式展示，默认进入“基本信息”页签。详情标题格式为“操作动作 - 业务对象名称”，副标题展示“业务流水号 / traceId”。
+
+基本信息字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 审计流水号 | `serial_code` | `AUD-20260610-0009` | 必填、唯一、不可编辑 |
+| `traceId` | `trace_id` | `trace-batch-update-009` | 必填，用于关联链路日志 |
+| 审计分类 | `audit_category` | `DML` | 枚举：`AUTH`、`DML`、`EXPORT` |
+| 操作动作 | `audit_action` | `UPDATE`，展示为“修改” | 枚举：`LOGIN`、`LOGOUT`、`INSERT`、`UPDATE`、`DELETE`、`EXPORT` |
+| 操作方式 | `operation_mode` | `BATCH`，展示为“批量操作” | 枚举：`SINGLE`、`BATCH` |
+| 批次 ID | `batch_id` | `BATCH-IMP-UPD-20260610-01` | 单体操作为空或展示 `-`；批量操作必填 |
+| 操作时间 | `operation_time` / `created_at` | `2026-06-10 17:18:42` | 精确到秒 |
+| 操作结果 | `result_status` | `SUCCESS`，展示为“成功” | 枚举：`SUCCESS`、`FAIL` |
+| 错误码 | `error_code` | `-` | 成功时为空；失败时必填或提供可定位的错误摘要 |
+| 错误信息 | `error_msg` | `-` | 成功时为空；失败时展示脱敏后的错误信息 |
+| 耗时 | `duration_ms` | `3188 ms` | 非负整数，单位 ms |
+| 摘要 | `summary` | `平台批量导入更新产品状态` | 应为可读中文摘要，不包含密码、Token、密钥、验证码 |
+
+操作主体字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 主体类型 | `operator_type` | `USER` | 枚举：`USER`、`UNKNOWN` |
+| 操作主体 | `operator_subject` | `user` | 外显主体标识；未知主体展示 `unknown` |
+| 用户 uid | `operator_uid` | `UID-18324` | 真实用户操作必填；作为历史快照保存 |
+| 姓名快照 | `operator_name` | `王*` | 脱敏展示；作为历史快照保存 |
+| 账号标识 | `operator_account` | `wang***@luteos.com` | 邮箱需脱敏展示 |
+| 认证渠道 | `auth_channel` | `MAIN` | 枚举以认证系统渠道为准；原型样例为 `MAIN` |
+
+请求上下文字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| HTTP 方法 | `http_method` | `POST` | 常用枚举：`GET`、`POST`、`PUT`、`PATCH`、`DELETE`；查询类操作不纳入审计采集 |
+| 请求 URI | `request_uri` | `/api/iot/products/import-update` | 详情展示，不作为列表筛选项 |
+| 客户端 IP | `client_ip` | `10.24.*.*` | 脱敏展示；不展示完整 IP |
+| User-Agent | `user_agent` | `Chrome 124 / macOS` | 展示采集到的浏览器 / 客户端摘要 |
+| 请求摘要 | `request_snapshot` | `{ "fileName": "product_update_20260610.xlsx", "fields": ["productId", "status"] }` | JSON 摘要；密码、Token、密钥、验证码必须删除或展示为 `[REDACTED]` |
+| 返回摘要 | `result_snapshot` | `{ "totalRows": 45, "successRows": 42, "failRows": 3 }` | JSON 摘要；不得包含敏感明文；超长内容由技术方案截断并标记 |
+
+操作对象字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 模块 | `module_name` / `module_code` | `智能产品` | 原型样例：认证中心、智能产品、配置中心、App管理、系统管理 |
+| 资源类型 | `resource_type` | `PRODUCT` | 原型样例：`PRODUCT`、`WHITE_LIST`、`APP_VERSION`、`ACCOUNT`；实际可随业务模块扩展 |
+| 业务主键 | `resource_id` | `IMPORT-PRODUCT-20260610-01` | 必填；批量操作可记录批次业务键或导入任务业务键 |
+| 业务对象 | `resource_name` | `产品状态批量导入更新` | 展示业务可读名称 |
+
+变更明细字段样例、枚举和限制：
+
+| 区域 | 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- | --- |
+| 字段差异 | 字段 | `field_name` / `field_label` | `产品状态` | 至少展示发生变化的字段；可展示必要上下文字段 |
+| 字段差异 | 变更前 | `before_value` | `草稿` | 新增场景展示 `-`；敏感字段脱敏 |
+| 字段差异 | 变更后 | `after_value` | `已启用` | 删除场景展示 `-` 或已删除状态；敏感字段脱敏 |
+| 明细记录 | 表 / 资源 | `table_name` | `t_iot_product` | 数据库增删改必填 |
+| 明细记录 | 类型 | `sql_type` | `UPDATE` | 枚举：`INSERT`、`UPDATE`、`DELETE` |
+| 明细记录 | 业务键 | `pk_value` / `resource_key` | `2042155626574495745` | 单体为对象主键；批量可为批次业务键 |
+| 明细记录 | 变更前 | `before_data` | `status=draft` | 新增为空或 `-`；必须脱敏 |
+| 明细记录 | 变更后 | `after_data` | `status=enabled` | 删除为空或 `-`；必须脱敏 |
+| 明细记录 | 行数 | `affected_rows` | `1` | 非负整数 |
+
+批量信息字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 操作方式 | `operation_mode` | `BATCH`，展示为“批量操作” | 仅批量操作展示；单体操作页签提示“当前日志不是平台批量动作” |
+| 批次 ID | `batch_id` | `BATCH-IMP-UPD-20260610-01` | 批量操作必填，可用于关联批次明细 |
+| 对象范围 | `batch_scope` | `产品 ID：2042155626574495701-2042155626574542` | 需能描述批量对象范围，不要求列表逐条展示全部对象 |
+| 总行数 | `total_rows` | `45` | 非负整数 |
+| 成功行数 | `success_rows` | `42` | 非负整数；应满足成功行数 + 失败行数 = 总行数 |
+| 失败行数 | `fail_rows` | `3` | 非负整数 |
+| 统一目标值 | `target_value` | `按导入文件逐行更新 status、ownerUid` | 有统一目标值时记录统一目标；逐行不同值时记录字段映射和说明 |
+| 导入文件名 | `file_name` | `product_update_20260610.xlsx` | 批量删除无导入文件时展示 `-` |
+| 逐行结果行号 | `row_result.row` | `7` | 原型仅展示样例行，不代表仅存储样例行 |
+| 逐行结果业务键 | `row_result.key` | `2042155626574495706` | 用于定位失败或成功对象 |
+| 逐行结果 | `row_result.result` | `失败` | 枚举：成功、失败 |
+| 逐行原因 | `row_result.reason` | `产品不存在` | 成功时可展示 `-`；失败时需给出可读原因 |
+
+导出信息字段样例、枚举和限制：
+
+| 字段 | 技术字段 | 样例 | 枚举 / 限制 |
+| --- | --- | --- | --- |
+| 导出条件 | `export_condition` | `数据中心=亚太；状态=已启用；创建时间=2026-01-01 至 2026-06-10` | 需记录用户发起导出时的筛选条件快照 |
+| 导出行数 | `export_rows` | `86` | 非负整数 |
+| 字段范围 | `export_columns` | `产品ID、产品名称、品类、状态、创建时间` | 记录导出的字段集合 |
+| 文件名 | `export_file_name` | `product_list_20260610.xlsx` | 记录导出文件名；不代表审计日志支持导出 |
+| 文件大小 | `export_file_size` | `74 KB` | 展示可读文件大小 |
+| 生成时间 | `export_generated_at` | `2026-06-10 17:42:21` | 精确到秒 |
 
 规则：
 
@@ -343,13 +456,17 @@ flowchart TD
 | --- | --- | --- |
 | `serial_code` | 审计事件唯一流水号 | 是 |
 | `trace_id` | 链路 ID | 是 |
+| `operation_time` / `created_at` | 操作发生时间 / 审计日志生成时间 | 是 |
 | `audit_category` | `AUTH`、`DML`、`EXPORT` | 是 |
 | `audit_action` | `INSERT`、`DELETE`、`UPDATE`、`LOGIN`、`LOGOUT`、`EXPORT` | 是 |
 | `operation_mode` | 操作方式：单体操作或平台批量动作 | 是 |
 | `batch_id` | 批次 ID，单体操作为空 | 批量场景 |
 | `module_code` | 业务模块 | 是 |
+| `module_name` | 业务模块展示名称 | 是 |
 | `resource_type` | 资源类型 | 是 |
 | `resource_id` | 业务主键 | 是 |
+| `resource_name` | 业务对象展示名称 | 是 |
+| `operator_subject` | 操作主体外显标识，例如 `user`、`unknown` | 是 |
 | `operator_uid` | 用户 uid 快照 | 是 |
 | `operator_name` | 用户姓名快照 | 是 |
 | `operator_account` | 账号标识 | 是 |
