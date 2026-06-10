@@ -387,7 +387,7 @@
 
     table {
       width: 100%;
-      min-width: 1280px;
+      min-width: 1400px;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
@@ -905,7 +905,7 @@
         <div class="menu-block">
           <div class="menu-title"><span>配置中心</span></div>
           <button class="menu-item"><span>白名单管理</span></button>
-          <button class="menu-item"><span>数据导入</span></button>
+          <button class="menu-item"><span>导出记录</span></button>
         </div>
         <div class="menu-block menu-dark">
           <div class="menu-title"><span>系统管理</span></div>
@@ -933,50 +933,51 @@
           <div class="filter-grid">
             <div class="field">
               <label for="dateFrom">开始时间</label>
-              <input id="dateFrom" type="datetime-local" value="2026-05-19T00:00">
+              <input id="dateFrom" type="datetime-local" value="2026-06-10T00:00">
             </div>
             <div class="field">
               <label for="dateTo">结束时间</label>
-              <input id="dateTo" type="datetime-local" value="2026-05-19T23:59">
+              <input id="dateTo" type="datetime-local" value="2026-06-10T23:59">
             </div>
             <div class="field">
-              <label for="actorKeyword">操作主体 / uid / 姓名</label>
-              <input id="actorKeyword" type="text" placeholder="system / UID / 姓名">
+              <label for="actorFilter">主体</label>
+              <input id="actorFilter" type="text" placeholder="user">
             </div>
             <div class="field">
-              <label for="serialFilter">serial_code</label>
+              <label for="serialFilter">业务流水号</label>
               <input id="serialFilter" type="text" placeholder="AUD-20260519">
+            </div>
+            <div class="field">
+              <label for="snapshotFilter">uid / 姓名快照</label>
+              <input id="snapshotFilter" type="text" placeholder="UID / 姓名">
+            </div>
+            <div class="field">
+              <label for="categoryFilter">分类</label>
+              <select id="categoryFilter">
+                <option value="">全部</option>
+                <option value="AUTH">AUTH</option>
+                <option value="DML">DML</option>
+                <option value="EXPORT">EXPORT</option>
+              </select>
             </div>
             <div class="field">
               <label for="actionFilter">操作类型</label>
               <select id="actionFilter">
                 <option value="">全部</option>
                 <option value="LOGIN">登录</option>
-                <option value="LOGIN_FAIL">登录失败</option>
                 <option value="LOGOUT">登出</option>
                 <option value="INSERT">新增</option>
                 <option value="UPDATE">修改</option>
                 <option value="DELETE">删除</option>
-                <option value="BATCH_UPDATE">批量修改</option>
-                <option value="IMPORT">导入</option>
                 <option value="EXPORT">导出</option>
-                <option value="SYNC">系统同步</option>
-                <option value="VIEW_DETAIL">详情查看</option>
-                <option value="DOWNLOAD_ATTACHMENT">附件下载</option>
               </select>
             </div>
             <div class="field">
-              <label for="categoryFilter">审计分类</label>
-              <select id="categoryFilter">
+              <label for="modeFilter">操作方式</label>
+              <select id="modeFilter">
                 <option value="">全部</option>
-                <option value="AUTH">AUTH</option>
-                <option value="DML">DML</option>
-                <option value="BATCH">BATCH</option>
-                <option value="IMPORT">IMPORT</option>
-                <option value="EXPORT">EXPORT</option>
-                <option value="SYSTEM_SYNC">SYSTEM_SYNC</option>
-                <option value="AUDIT_VIEW">AUDIT_VIEW</option>
-                <option value="AUDIT_ATTACHMENT_DOWNLOAD">AUDIT_ATTACHMENT_DOWNLOAD</option>
+                <option value="SINGLE">单体操作</option>
+                <option value="BATCH">批量操作</option>
               </select>
             </div>
             <div class="field">
@@ -991,12 +992,8 @@
               </select>
             </div>
             <div class="field">
-              <label for="resourceTypeFilter">资源类型</label>
-              <input id="resourceTypeFilter" type="text" placeholder="PRODUCT / WHITE_LIST">
-            </div>
-            <div class="field">
-              <label for="resourceIdFilter">资源 ID</label>
-              <input id="resourceIdFilter" type="text" placeholder="业务 ID / 批次 ID">
+              <label for="resourceFilter">业务主键</label>
+              <input id="resourceFilter" type="text" placeholder="输入业务主键">
             </div>
             <div class="field">
               <label for="resultFilter">结果</label>
@@ -1004,16 +1001,15 @@
                 <option value="">全部</option>
                 <option value="SUCCESS">成功</option>
                 <option value="FAIL">失败</option>
-                <option value="PARTIAL_SUCCESS">部分成功</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="ipFilter">IP</label>
+              <input id="ipFilter" type="text" placeholder="10.24">
             </div>
             <div class="field">
               <label for="traceFilter">traceId</label>
               <input id="traceFilter" type="text" placeholder="trace-">
-            </div>
-            <div class="field">
-              <label for="uriFilter">请求 URI</label>
-              <input id="uriFilter" type="text" placeholder="/api/">
             </div>
             <div class="filter-actions">
               <button class="button primary" id="queryBtn" type="button">查询</button>
@@ -1021,9 +1017,6 @@
             </div>
           </div>
           <div class="meta-row">
-            <span class="tag primary">只读</span>
-            <span class="tag">无导出入口</span>
-            <span>最近证据访问：<strong id="accessCount">0</strong></span>
             <span>当前筛选结果：<strong id="filteredCount">0</strong></span>
           </div>
         </section>
@@ -1041,13 +1034,14 @@
               <thead>
                 <tr>
                   <th class="nowrap">操作时间</th>
-                  <th class="nowrap">serial_code</th>
+                  <th class="nowrap">业务流水号</th>
                   <th class="nowrap">主体</th>
                   <th class="nowrap">uid / 姓名快照</th>
                   <th class="nowrap">分类</th>
                   <th class="nowrap">操作类型</th>
+                  <th class="nowrap">操作方式</th>
                   <th class="nowrap">模块</th>
-                  <th>资源</th>
+                  <th>业务主键</th>
                   <th class="nowrap">结果</th>
                   <th class="nowrap">IP</th>
                   <th class="nowrap">traceId</th>
@@ -1099,24 +1093,21 @@
 
     const labelMap = {
       LOGIN: "登录",
-      LOGIN_FAIL: "登录失败",
       LOGOUT: "登出",
       INSERT: "新增",
       UPDATE: "修改",
       DELETE: "删除",
-      BATCH_UPDATE: "批量修改",
-      BATCH_DELETE: "批量删除",
-      IMPORT: "导入",
-      EXPORT: "导出",
-      SYNC: "系统同步",
-      VIEW_DETAIL: "详情查看",
-      DOWNLOAD_ATTACHMENT: "附件下载"
+      EXPORT: "导出"
     };
 
     const resultMap = {
       SUCCESS: "成功",
-      FAIL: "失败",
-      PARTIAL_SUCCESS: "部分成功"
+      FAIL: "失败"
+    };
+
+    const modeMap = {
+      SINGLE: "单体操作",
+      BATCH: "批量操作"
     };
 
     const tabs = [
@@ -1126,113 +1117,19 @@
       { id: "object", label: "操作对象" },
       { id: "changes", label: "变更明细" },
       { id: "batch", label: "批量信息" },
-      { id: "files", label: "附件" }
+      { id: "export", label: "导出信息" }
     ];
 
     let logs = [
       {
-        serial: "AUD-20260519-0008",
-        time: "2026-05-19 17:24:31",
-        category: "AUDIT_ATTACHMENT_DOWNLOAD",
-        action: "DOWNLOAD_ATTACHMENT",
-        module: "系统管理",
-        resourceType: "IMPORT_RESULT",
-        resourceId: "IMP-20260519-004",
-        resourceName: "失败明细文件",
-        actorType: "USER",
-        actor: "user",
-        actorUid: "UID-90001",
-        actorName: "审*",
-        account: "audit***@luteos.com",
-        channel: "MAIN",
-        ip: "10.24.*.*",
-        traceId: "trace-audit-file-008",
-        requestUri: "/api/audit/attachments/IMP-20260519-004/failure",
-        method: "GET",
-        result: "SUCCESS",
-        duration: 142,
-        summary: "下载导入失败明细",
-        details: [],
-        evidenceTarget: "AUD-20260519-0004",
-        userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { attachmentType: "failure_rows", targetSerial: "AUD-20260519-0004" },
-        resultSnapshot: { fileName: "device_import_failed_rows.xlsx", size: "18 KB" }
-      },
-      {
-        serial: "AUD-20260519-0007",
-        time: "2026-05-19 17:22:48",
-        category: "AUDIT_VIEW",
-        action: "VIEW_DETAIL",
-        module: "系统管理",
-        resourceType: "AUDIT_LOG",
-        resourceId: "AUD-20260519-0003",
-        resourceName: "审计详情",
-        actorType: "USER",
-        actor: "user",
-        actorUid: "UID-90001",
-        actorName: "审*",
-        account: "audit***@luteos.com",
-        channel: "MAIN",
-        ip: "10.24.*.*",
-        traceId: "trace-audit-view-007",
-        requestUri: "/api/audit/logs/AUD-20260519-0003",
-        method: "GET",
-        result: "SUCCESS",
-        duration: 96,
-        summary: "查看批量操作审计详情",
-        details: [],
-        evidenceTarget: "AUD-20260519-0003",
-        userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { targetSerial: "AUD-20260519-0003" },
-        resultSnapshot: { tab: "batch" }
-      },
-      {
-        serial: "AUD-20260519-0006",
-        time: "2026-05-19 16:58:03",
-        category: "SYSTEM_SYNC",
-        action: "SYNC",
-        module: "智能产品",
-        resourceType: "PRODUCT_CATEGORY",
-        resourceId: "SYNC-CRM-20260519-06",
-        resourceName: "CRM 品类同步",
-        actorType: "SYSTEM",
-        actor: "system",
-        actorUid: "system",
-        actorName: "system",
-        account: "system",
-        channel: "PUBLIC",
-        ip: "172.16.*.*",
-        traceId: "trace-sync-crm-006",
-        requestUri: "/api/integration/crm/category/sync",
-        method: "POST",
-        result: "SUCCESS",
-        duration: 1834,
-        summary: "外部系统同步产品品类",
-        sourceSystem: "CRM",
-        syncTaskId: "CRM-CATEGORY-DAILY",
-        syncBatch: "BATCH-20260519-1600",
-        batch: { scope: "来源系统=CRM；品类更新时间 >= 2026-05-19 00:00", expected: 18, success: 18, failed: 0, target: "同步产品品类名称与启用状态" },
-        details: [
-          { table: "t_product_category", type: "UPDATE", key: "CAT-HEALTH-001", before: "enabled=false", after: "enabled=true", rows: 1 },
-          { table: "t_product_category_i18n", type: "UPDATE", key: "CAT-HEALTH-001:zh-CN", before: "name=健康监测", after: "name=健康护理", rows: 1 }
-        ],
-        changes: [
-          { field: "categoryName", label: "品类名称", before: "健康监测", after: "健康护理", changed: true },
-          { field: "enabled", label: "启用状态", before: "false", after: "true", changed: true },
-          { field: "updatedBy", label: "更新主体", before: "system", after: "system", changed: false }
-        ],
-        userAgent: "CRM-Sync-Job/3.4",
-        requestSnapshot: { sourceSystem: "CRM", taskId: "CRM-CATEGORY-DAILY", token: "[REDACTED]" },
-        resultSnapshot: { total: 18, success: 18, failed: 0 }
-      },
-      {
-        serial: "AUD-20260519-0005",
-        time: "2026-05-19 15:41:27",
+        serial: "AUD-20260610-0006",
+        time: "2026-06-10 17:42:18",
         category: "EXPORT",
         action: "EXPORT",
+        operationMode: "SINGLE",
         module: "智能产品",
         resourceType: "PRODUCT",
-        resourceId: "EXP-20260519-002",
+        resourceId: "EXP-20260610-002",
         resourceName: "产品列表导出",
         actorType: "USER",
         actor: "user",
@@ -1241,30 +1138,29 @@
         account: "li***@luteos.com",
         channel: "MAIN",
         ip: "10.21.*.*",
-        traceId: "trace-export-005",
+        traceId: "trace-export-006",
         requestUri: "/api/iot/products/export",
         method: "POST",
         result: "SUCCESS",
         duration: 2410,
         summary: "导出产品列表",
-        exportInfo: { condition: "数据中心=亚太；状态=已启用；创建时间=2026-01-01 至 2026-05-19", rows: 86, columns: "产品ID、产品名称、品类、状态、创建时间", fileName: "product_list_20260519.xlsx", size: "74 KB", expireAt: "2026-06-18 23:59:59" },
-        attachments: [
-          { id: "export-file", name: "product_list_20260519.xlsx", type: "导出文件", size: "74 KB", permission: false }
-        ],
+        exportInfo: { condition: "数据中心=亚太；状态=已启用；创建时间=2026-01-01 至 2026-06-10", rows: 86, columns: "产品ID、产品名称、品类、状态、创建时间", fileName: "product_list_20260610.xlsx", size: "74 KB", generatedAt: "2026-06-10 17:42:21" },
         details: [],
         userAgent: "Chrome 124 / macOS",
         requestSnapshot: { region: "APAC", status: "enabled", exportFields: ["productId", "productName", "status"] },
-        resultSnapshot: { rows: 86, fileName: "product_list_20260519.xlsx" }
+        resultSnapshot: { rows: 86, fileName: "product_list_20260610.xlsx" }
       },
       {
-        serial: "AUD-20260519-0004",
-        time: "2026-05-19 14:33:12",
-        category: "IMPORT",
-        action: "IMPORT",
-        module: "设备管理",
-        resourceType: "DEVICE",
-        resourceId: "IMP-20260519-004",
-        resourceName: "设备白名单导入",
+        serial: "AUD-20260610-0009",
+        time: "2026-06-10 17:18:42",
+        category: "DML",
+        action: "UPDATE",
+        operationMode: "BATCH",
+        batchId: "BATCH-IMP-UPD-20260610-01",
+        module: "智能产品",
+        resourceType: "PRODUCT",
+        resourceId: "IMPORT-PRODUCT-20260610-01",
+        resourceName: "产品状态批量导入更新",
         actorType: "USER",
         actor: "user",
         actorUid: "UID-18324",
@@ -1272,40 +1168,48 @@
         account: "wang***@luteos.com",
         channel: "MAIN",
         ip: "10.24.*.*",
-        traceId: "trace-import-004",
-        requestUri: "/api/iot/devices/import",
+        traceId: "trace-batch-update-009",
+        requestUri: "/api/iot/products/import-update",
         method: "POST",
-        result: "PARTIAL_SUCCESS",
-        duration: 12880,
-        summary: "导入设备白名单，部分失败",
-        importInfo: { fileName: "device_whitelist_20260519.xlsx", size: "228 KB", totalRows: 1200, validRows: 1200, successRows: 1192, failedRows: 8, skippedRows: 0 },
-        rowResults: [
-          { row: 18, key: "SN-A7N3-00018", result: "失败", reason: "SN 已存在" },
-          { row: 209, key: "SN-A7N3-00209", result: "失败", reason: "产品 ID 不存在" },
-          { row: 884, key: "SN-A7N3-00884", result: "失败", reason: "MAC 地址格式错误" }
-        ],
-        attachments: [
-          { id: "raw-import", name: "device_whitelist_20260519.xlsx", type: "原始导入文件", size: "228 KB", permission: true },
-          { id: "result-import", name: "device_import_result.xlsx", type: "处理结果", size: "32 KB", permission: true },
-          { id: "failure-import", name: "device_import_failed_rows.xlsx", type: "失败明细", size: "18 KB", permission: true }
-        ],
+        result: "SUCCESS",
+        duration: 3188,
+        summary: "平台批量导入更新产品状态",
         details: [
-          { table: "t_device_whitelist", type: "INSERT", key: "SN-A7N3-00001", before: "-", after: "status=enabled", rows: 1 },
-          { table: "t_device_whitelist", type: "INSERT", key: "SN-A7N3-00002", before: "-", after: "status=enabled", rows: 1 }
+          { table: "t_iot_product", type: "UPDATE", key: "BATCH-IMP-UPD-20260610-01", before: "多对象逐行值", after: "status 按导入文件更新", rows: 42 }
+        ],
+        batchInfo: {
+          batchId: "BATCH-IMP-UPD-20260610-01",
+          scope: "产品 ID：2042155626574495701-2042155626574542",
+          totalRows: 45,
+          successRows: 42,
+          failRows: 3,
+          targetValue: "按导入文件逐行更新 status、ownerUid",
+          fileName: "product_update_20260610.xlsx",
+          rowResults: [
+            { row: 2, key: "2042155626574495701", result: "成功", reason: "-" },
+            { row: 3, key: "2042155626574495702", result: "成功", reason: "-" },
+            { row: 7, key: "2042155626574495706", result: "失败", reason: "产品不存在" }
+          ]
+        },
+        changes: [
+          { field: "status", label: "产品状态", before: "按行记录", after: "按导入文件更新", changed: true },
+          { field: "ownerUid", label: "负责人 uid", before: "按行记录", after: "按导入文件更新", changed: true }
         ],
         userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { fileName: "device_whitelist_20260519.xlsx", uploader: "UID-18324", operatorName: "王*", email: "wang***@luteos.com" },
-        resultSnapshot: { totalRows: 1200, successRows: 1192, failedRows: 8 }
+        requestSnapshot: { fileName: "product_update_20260610.xlsx", fields: ["productId", "status", "ownerUid"] },
+        resultSnapshot: { totalRows: 45, successRows: 42, failRows: 3 }
       },
       {
-        serial: "AUD-20260519-0003",
-        time: "2026-05-19 11:18:44",
-        category: "BATCH",
-        action: "BATCH_UPDATE",
+        serial: "AUD-20260610-0008",
+        time: "2026-06-10 16:38:25",
+        category: "DML",
+        action: "DELETE",
+        operationMode: "BATCH",
+        batchId: "BATCH-DEL-20260610-02",
         module: "配置中心",
         resourceType: "WHITE_LIST",
-        resourceId: "BATCH-WL-20260519-003",
-        resourceName: "白名单状态批量停用",
+        resourceId: "WL-BATCH-20260610-02",
+        resourceName: "测试白名单批量删除",
         actorType: "USER",
         actor: "user",
         actorUid: "UID-72109",
@@ -1313,34 +1217,190 @@
         account: "zhao***@luteos.com",
         channel: "MAIN",
         ip: "10.23.*.*",
-        traceId: "trace-batch-003",
-        requestUri: "/api/config/whitelist/batch-status",
-        method: "POST",
-        result: "PARTIAL_SUCCESS",
-        duration: 7630,
-        summary: "批量停用白名单",
-        batch: { scope: "数据中心=欧洲；白名单类型=测试账号；更新时间 < 2026-05-01", expected: 320, success: 313, failed: 7, target: "status = disabled", failure: "7 条被业务规则锁定" },
-        rowResults: [
-          { row: 1, key: "WL-10284", result: "成功", reason: "-" },
-          { row: 2, key: "WL-10285", result: "失败", reason: "测试账号仍有关联设备" },
-          { row: 3, key: "WL-10286", result: "成功", reason: "-" }
-        ],
-        attachments: [
-          { id: "batch-failure", name: "white_list_batch_failed.xlsx", type: "失败明细", size: "12 KB", permission: true }
-        ],
+        traceId: "trace-batch-delete-008",
+        requestUri: "/api/config/whitelist/batch-delete",
+        method: "DELETE",
+        result: "SUCCESS",
+        duration: 924,
+        summary: "平台批量删除白名单记录",
         details: [
-          { table: "t_whitelist", type: "UPDATE", key: "WL-10284", before: "status=enabled", after: "status=disabled", rows: 1 },
-          { table: "t_whitelist", type: "UPDATE", key: "WL-10286", before: "status=enabled", after: "status=disabled", rows: 1 }
+          { table: "t_whitelist", type: "DELETE", key: "WL-BATCH-20260610-02", before: "status=enabled; type=test_account", after: "-", rows: 12 }
+        ],
+        batchInfo: {
+          batchId: "BATCH-DEL-20260610-02",
+          scope: "白名单 ID：WL-10280 至 WL-10291；类型=test_account",
+          totalRows: 12,
+          successRows: 12,
+          failRows: 0,
+          targetValue: "统一目标值：删除 / removed=true",
+          fileName: "-",
+          rowResults: [
+            { row: 1, key: "WL-10280", result: "成功", reason: "-" },
+            { row: 2, key: "WL-10281", result: "成功", reason: "-" },
+            { row: 3, key: "WL-10282", result: "成功", reason: "-" }
+          ]
+        },
+        changes: [
+          { field: "removed", label: "删除标记", before: "false", after: "true", changed: true },
+          { field: "status", label: "状态", before: "启用", after: "已删除", changed: true }
         ],
         userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { dataCenter: "EU", type: "test_account", targetStatus: "disabled" },
-        resultSnapshot: { expected: 320, success: 313, failed: 7 }
+        requestSnapshot: { ids: ["WL-10280", "WL-10281", "WL-10282"], target: "delete" },
+        resultSnapshot: { totalRows: 12, successRows: 12, failRows: 0 }
       },
       {
-        serial: "AUD-20260519-0002",
-        time: "2026-05-19 10:02:05",
+        serial: "AUD-20260610-0007",
+        time: "2026-06-10 15:05:31",
+        category: "DML",
+        action: "INSERT",
+        operationMode: "BATCH",
+        batchId: "BATCH-IMP-INS-20260610-01",
+        module: "智能产品",
+        resourceType: "PRODUCT",
+        resourceId: "IMPORT-PRODUCT-20260610-02",
+        resourceName: "产品批量导入新增",
+        actorType: "USER",
+        actor: "user",
+        actorUid: "UID-10427",
+        actorName: "李*",
+        account: "li***@luteos.com",
+        channel: "MAIN",
+        ip: "10.21.*.*",
+        traceId: "trace-batch-insert-007",
+        requestUri: "/api/iot/products/import-create",
+        method: "POST",
+        result: "SUCCESS",
+        duration: 2742,
+        summary: "平台批量导入新增产品",
+        details: [
+          { table: "t_iot_product", type: "INSERT", key: "BATCH-IMP-INS-20260610-01", before: "-", after: "按导入文件新增产品", rows: 38 }
+        ],
+        batchInfo: {
+          batchId: "BATCH-IMP-INS-20260610-01",
+          scope: "导入文件 product_create_20260610.xlsx 第 2-40 行",
+          totalRows: 39,
+          successRows: 38,
+          failRows: 1,
+          targetValue: "新增产品基础信息、品类、默认状态=draft",
+          fileName: "product_create_20260610.xlsx",
+          rowResults: [
+            { row: 2, key: "SKU-AP-8801", result: "成功", reason: "-" },
+            { row: 3, key: "SKU-AP-8802", result: "成功", reason: "-" },
+            { row: 8, key: "SKU-AP-8807", result: "失败", reason: "产品编码重复" }
+          ]
+        },
+        changes: [
+          { field: "productCode", label: "产品编码", before: "-", after: "按导入文件新增", changed: true },
+          { field: "status", label: "产品状态", before: "-", after: "草稿", changed: true }
+        ],
+        userAgent: "Chrome 124 / macOS",
+        requestSnapshot: { fileName: "product_create_20260610.xlsx", defaultStatus: "draft" },
+        resultSnapshot: { totalRows: 39, successRows: 38, failRows: 1 }
+      },
+      {
+        serial: "AUD-20260610-0005",
+        time: "2026-06-10 16:08:03",
+        category: "DML",
+        action: "DELETE",
+        operationMode: "SINGLE",
+        module: "配置中心",
+        resourceType: "WHITE_LIST",
+        resourceId: "WL-10284",
+        resourceName: "测试账号白名单",
+        actorType: "USER",
+        actor: "user",
+        actorUid: "UID-72109",
+        actorName: "赵*",
+        account: "zhao***@luteos.com",
+        channel: "MAIN",
+        ip: "10.23.*.*",
+        traceId: "trace-delete-005",
+        requestUri: "/api/config/whitelist/WL-10284",
+        method: "DELETE",
+        result: "SUCCESS",
+        duration: 428,
+        summary: "删除白名单记录",
+        details: [
+          { table: "t_whitelist", type: "DELETE", key: "WL-10284", before: "status=enabled; type=test_account", after: "-", rows: 1 }
+        ],
+        changes: [
+          { field: "id", label: "白名单 ID", before: "WL-10284", after: "-", changed: true },
+          { field: "status", label: "状态", before: "启用", after: "已删除", changed: true },
+          { field: "ownerEmail", label: "账号邮箱", before: "qa***@luteos.com", after: "-", changed: true }
+        ],
+        userAgent: "Chrome 124 / macOS",
+        requestSnapshot: { whitelistId: "WL-10284" },
+        resultSnapshot: { deleted: true }
+      },
+      {
+        serial: "AUD-20260610-0004",
+        time: "2026-06-10 14:26:50",
+        category: "AUTH",
+        action: "LOGOUT",
+        operationMode: "SINGLE",
+        module: "认证中心",
+        resourceType: "ACCOUNT",
+        resourceId: "UID-18324",
+        resourceName: "后台登出",
+        actorType: "USER",
+        actor: "user",
+        actorUid: "UID-18324",
+        actorName: "王*",
+        account: "wang***@luteos.com",
+        channel: "MAIN",
+        ip: "10.24.*.*",
+        traceId: "trace-auth-logout-004",
+        requestUri: "/api/auth/logout",
+        method: "POST",
+        result: "SUCCESS",
+        duration: 118,
+        summary: "用户主动登出",
+        details: [],
+        userAgent: "Chrome 124 / macOS",
+        requestSnapshot: { uid: "UID-18324" },
+        resultSnapshot: { success: true }
+      },
+      {
+        serial: "AUD-20260610-0003",
+        time: "2026-06-10 11:52:27",
+        category: "DML",
+        action: "INSERT",
+        operationMode: "SINGLE",
+        module: "App管理",
+        resourceType: "APP_VERSION",
+        resourceId: "APP-VER-20260610-03",
+        resourceName: "App 版本 6.8.0",
+        actorType: "USER",
+        actor: "user",
+        actorUid: "UID-10427",
+        actorName: "李*",
+        account: "li***@luteos.com",
+        channel: "MAIN",
+        ip: "10.21.*.*",
+        traceId: "trace-insert-003",
+        requestUri: "/api/app/versions",
+        method: "POST",
+        result: "SUCCESS",
+        duration: 512,
+        summary: "新增 App 版本",
+        details: [
+          { table: "t_app_version", type: "INSERT", key: "APP-VER-20260610-03", before: "-", after: "version=6.8.0; status=draft", rows: 1 }
+        ],
+        changes: [
+          { field: "version", label: "版本号", before: "-", after: "6.8.0", changed: true },
+          { field: "status", label: "状态", before: "-", after: "草稿", changed: true },
+          { field: "creator", label: "创建人", before: "-", after: "李*", changed: true }
+        ],
+        userAgent: "Chrome 124 / macOS",
+        requestSnapshot: { version: "6.8.0", creatorName: "李*", token: "[REDACTED]" },
+        resultSnapshot: { id: "APP-VER-20260610-03", status: "draft" }
+      },
+      {
+        serial: "AUD-20260610-0002",
+        time: "2026-06-10 10:02:05",
         category: "DML",
         action: "UPDATE",
+        operationMode: "SINGLE",
         module: "智能产品",
         resourceType: "PRODUCT",
         resourceId: "2042155626574495745",
@@ -1373,39 +1433,11 @@
         resultSnapshot: { productId: "2042155626574495745", status: "enabled" }
       },
       {
-        serial: "AUD-20260519-0001",
-        time: "2026-05-19 09:47:19",
-        category: "AUTH",
-        action: "LOGIN_FAIL",
-        module: "认证中心",
-        resourceType: "ACCOUNT",
-        resourceId: "li***@luteos.com",
-        resourceName: "登录失败账号",
-        actorType: "UNKNOWN",
-        actor: "unknown",
-        actorUid: "-",
-        actorName: "-",
-        account: "li***@luteos.com",
-        channel: "MAIN",
-        ip: "10.18.*.*",
-        traceId: "trace-auth-001",
-        requestUri: "/api/auth/login",
-        method: "POST",
-        result: "FAIL",
-        duration: 184,
-        errorCode: "AUTH_PASSWORD_INVALID",
-        errorMsg: "密码错误",
-        summary: "登录失败",
-        details: [],
-        userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { account: "li***@luteos.com", password: "[REDACTED]", verificationCode: "[REDACTED]" },
-        resultSnapshot: { success: false, errorCode: "AUTH_PASSWORD_INVALID" }
-      },
-      {
-        serial: "AUD-20260519-0000",
-        time: "2026-05-19 09:11:03",
+        serial: "AUD-20260610-0001",
+        time: "2026-06-10 09:11:03",
         category: "AUTH",
         action: "LOGIN",
+        operationMode: "SINGLE",
         module: "认证中心",
         resourceType: "ACCOUNT",
         resourceId: "UID-18324",
@@ -1417,7 +1449,7 @@
         account: "wang***@luteos.com",
         channel: "MAIN",
         ip: "10.24.*.*",
-        traceId: "trace-auth-000",
+        traceId: "trace-auth-login-001",
         requestUri: "/api/auth/login",
         method: "POST",
         result: "SUCCESS",
@@ -1430,12 +1462,12 @@
       }
     ];
 
+    logs.sort((a, b) => new Date(b.time.replace(" ", "T")).getTime() - new Date(a.time.replace(" ", "T")).getTime());
+
     let filteredLogs = [...logs];
     let currentPage = 1;
     let activeTab = "basic";
     let selectedLog = null;
-    let accessEventsAdded = 0;
-    let serialSeq = 1000;
 
     const byId = (id) => document.getElementById(id);
 
@@ -1447,16 +1479,17 @@
       return {
         from: byId("dateFrom").value,
         to: byId("dateTo").value,
-        actor: byId("actorKeyword").value.trim().toLowerCase(),
+        actor: byId("actorFilter").value.trim().toLowerCase(),
         serial: byId("serialFilter").value.trim().toLowerCase(),
+        snapshot: byId("snapshotFilter").value.trim().toLowerCase(),
         action: byId("actionFilter").value,
+        mode: byId("modeFilter").value,
         category: byId("categoryFilter").value,
         module: byId("moduleFilter").value,
-        resourceType: byId("resourceTypeFilter").value.trim().toLowerCase(),
-        resourceId: byId("resourceIdFilter").value.trim().toLowerCase(),
+        resource: byId("resourceFilter").value.trim().toLowerCase(),
         result: byId("resultFilter").value,
-        traceId: byId("traceFilter").value.trim().toLowerCase(),
-        uri: byId("uriFilter").value.trim().toLowerCase()
+        ip: byId("ipFilter").value.trim().toLowerCase(),
+        traceId: byId("traceFilter").value.trim().toLowerCase()
       };
     }
 
@@ -1467,19 +1500,21 @@
 
       filteredLogs = logs.filter((log) => {
         const ts = parseTime(log.time);
-        const actorText = [log.actor, log.actorUid, log.actorName, log.account].join(" ").toLowerCase();
+        const snapshotText = [log.actorUid, log.actorName].join(" ").toLowerCase();
+        const resourceText = [log.resourceType, log.resourceId, log.resourceName].join(" ").toLowerCase();
         return ts >= fromTs &&
           ts <= toTs &&
-          (!f.actor || actorText.includes(f.actor)) &&
+          (!f.actor || log.actor.toLowerCase().includes(f.actor)) &&
           (!f.serial || log.serial.toLowerCase().includes(f.serial)) &&
+          (!f.snapshot || snapshotText.includes(f.snapshot)) &&
           (!f.action || log.action === f.action) &&
+          (!f.mode || log.operationMode === f.mode) &&
           (!f.category || log.category === f.category) &&
           (!f.module || log.module === f.module) &&
-          (!f.resourceType || log.resourceType.toLowerCase().includes(f.resourceType)) &&
-          (!f.resourceId || String(log.resourceId).toLowerCase().includes(f.resourceId)) &&
+          (!f.resource || resourceText.includes(f.resource)) &&
           (!f.result || log.result === f.result) &&
-          (!f.traceId || log.traceId.toLowerCase().includes(f.traceId)) &&
-          (!f.uri || log.requestUri.toLowerCase().includes(f.uri));
+          (!f.ip || log.ip.toLowerCase().includes(f.ip)) &&
+          (!f.traceId || log.traceId.toLowerCase().includes(f.traceId));
       });
 
       currentPage = 1;
@@ -1488,10 +1523,10 @@
     }
 
     function resetFilters() {
-      byId("dateFrom").value = "2026-05-19T00:00";
-      byId("dateTo").value = "2026-05-19T23:59";
-      ["actorKeyword", "serialFilter", "resourceTypeFilter", "resourceIdFilter", "traceFilter", "uriFilter"].forEach((id) => byId(id).value = "");
-      ["actionFilter", "categoryFilter", "moduleFilter", "resultFilter"].forEach((id) => byId(id).value = "");
+      byId("dateFrom").value = "2026-06-10T00:00";
+      byId("dateTo").value = "2026-06-10T23:59";
+      ["actorFilter", "serialFilter", "snapshotFilter", "resourceFilter", "ipFilter", "traceFilter"].forEach((id) => byId(id).value = "");
+      ["actionFilter", "modeFilter", "categoryFilter", "moduleFilter", "resultFilter"].forEach((id) => byId(id).value = "");
       filteredLogs = [...logs];
       currentPage = 1;
       renderTable();
@@ -1506,14 +1541,12 @@
 
     function categoryTag(category) {
       if (category === "AUTH") return "primary";
-      if (category === "SYSTEM_SYNC") return "dark";
-      if (category === "IMPORT" || category === "EXPORT" || category === "BATCH") return "warning";
-      if (category.includes("AUDIT")) return "primary";
+      if (category === "EXPORT") return "warning";
+      if (category === "DML") return "primary";
       return "";
     }
 
     function actorLabel(log) {
-      if (log.actorType === "SYSTEM") return '<span class="tag dark">system</span>';
       if (log.actorType === "UNKNOWN") return '<span class="tag">unknown</span>';
       return '<span class="tag primary">user</span>';
     }
@@ -1541,11 +1574,12 @@
           </td>
           <td><span class="tag ${categoryTag(log.category)}">${log.category}</span></td>
           <td class="nowrap">${labelMap[log.action] || log.action}</td>
+          <td class="nowrap">${modeMap[log.operationMode] || log.operationMode || "-"}</td>
           <td class="nowrap">${log.module}</td>
           <td>
             <div class="resource-stack">
-              <strong>${log.resourceType} / ${log.resourceId}</strong>
-              <span class="muted">${log.resourceName}</span>
+              <strong>${log.resourceId}</strong>
+              <span class="muted">${log.resourceType} / ${log.resourceName}</span>
             </div>
           </td>
           <td><span class="tag ${resultTag(log.result)}">${resultMap[log.result] || log.result}</span></td>
@@ -1576,7 +1610,6 @@
       renderDrawer();
       byId("drawerMask").classList.add("open");
       byId("drawerMask").setAttribute("aria-hidden", "false");
-      appendEvidenceEvent("VIEW_DETAIL", selectedLog, "SUCCESS");
     }
 
     function closeDrawer() {
@@ -1609,16 +1642,9 @@
         object: renderObject,
         changes: renderChanges,
         batch: renderBatch,
-        files: renderFiles
+        export: renderExport
       }[activeTab]();
       byId("drawerBody").innerHTML = content;
-      byId("drawerBody").querySelectorAll("[data-download]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const fileId = btn.dataset.download;
-          const file = (selectedLog.attachments || []).find((item) => item.id === fileId);
-          downloadAttachment(file);
-        });
-      });
     }
 
     function kv(rows) {
@@ -1637,6 +1663,8 @@
             ["traceId", `<span class="mono">${selectedLog.traceId}</span>`],
             ["审计分类", `<span class="tag ${categoryTag(selectedLog.category)}">${selectedLog.category}</span>`],
             ["操作动作", labelMap[selectedLog.action] || selectedLog.action],
+            ["操作方式", modeMap[selectedLog.operationMode] || selectedLog.operationMode || "-"],
+            ["批次 ID", selectedLog.batchId || "-"],
             ["操作时间", selectedLog.time],
             ["操作结果", `<span class="tag ${resultTag(selectedLog.result)}">${resultMap[selectedLog.result] || selectedLog.result}</span>`],
             ["错误码", selectedLog.errorCode || "-"],
@@ -1658,10 +1686,7 @@
             ["用户 uid", selectedLog.actorUid],
             ["姓名快照", selectedLog.actorName],
             ["账号标识", selectedLog.account],
-            ["认证渠道", selectedLog.channel],
-            ["来源系统", selectedLog.sourceSystem || "-"],
-            ["同步任务 ID", selectedLog.syncTaskId || "-"],
-            ["同步批次", selectedLog.syncBatch || "-"]
+            ["认证渠道", selectedLog.channel]
           ])}
         </section>
       `;
@@ -1690,10 +1715,8 @@
           ${kv([
             ["模块", selectedLog.module],
             ["资源类型", selectedLog.resourceType],
-            ["资源 ID", selectedLog.resourceId],
-            ["业务对象", selectedLog.resourceName],
-            ["证据目标", selectedLog.evidenceTarget || "-"],
-            ["批量范围", selectedLog.batch ? selectedLog.batch.scope : "-"]
+            ["业务主键", selectedLog.resourceId],
+            ["业务对象", selectedLog.resourceName]
           ])}
         </section>
       `;
@@ -1748,177 +1771,66 @@
     }
 
     function renderBatch() {
-      const batch = selectedLog.batch;
-      const rows = selectedLog.rowResults || [];
-      if (!batch && !selectedLog.importInfo && !selectedLog.exportInfo) {
-        return `<div class="empty">当前日志无批量、导入或导出规模信息</div>`;
+      const info = selectedLog.batchInfo;
+      if (!info) {
+        return `<div class="empty">当前日志不是平台批量动作</div>`;
       }
 
-      const batchBlock = batch ? `
-        <section class="section">
-          <h3 class="section-title">批量操作</h3>
-          ${kv([
-            ["对象范围", batch.scope],
-            ["预期数量", batch.expected],
-            ["成功数量", batch.success],
-            ["失败数量", batch.failed],
-            ["统一目标值", batch.target],
-            ["失败摘要", batch.failure || "-"]
-          ])}
-        </section>
-      ` : "";
-
-      const importBlock = selectedLog.importInfo ? `
-        <section class="section">
-          <h3 class="section-title">导入规模</h3>
-          ${kv([
-            ["原始文件", selectedLog.importInfo.fileName],
-            ["文件大小", selectedLog.importInfo.size],
-            ["总行数", selectedLog.importInfo.totalRows],
-            ["有效行数", selectedLog.importInfo.validRows],
-            ["成功行数", selectedLog.importInfo.successRows],
-            ["失败行数", selectedLog.importInfo.failedRows],
-            ["跳过行数", selectedLog.importInfo.skippedRows]
-          ])}
-        </section>
-      ` : "";
-
-      const exportBlock = selectedLog.exportInfo ? `
-        <section class="section">
-          <h3 class="section-title">导出规模</h3>
-          ${kv([
-            ["导出条件", selectedLog.exportInfo.condition],
-            ["导出行数", selectedLog.exportInfo.rows],
-            ["字段范围", selectedLog.exportInfo.columns],
-            ["文件名", selectedLog.exportInfo.fileName],
-            ["文件大小", selectedLog.exportInfo.size],
-            ["链接有效期", selectedLog.exportInfo.expireAt]
-          ])}
-        </section>
-      ` : "";
-
-      const rowTable = rows.length ? `
-        <section class="section">
-          <h3 class="section-title">逐行结果样例</h3>
-          <table class="mini-table">
-            <thead><tr><th>行号</th><th>业务键</th><th>结果</th><th>原因</th></tr></thead>
-            <tbody>
-              ${rows.map((item) => `
-                <tr>
-                  <td>${item.row}</td>
-                  <td>${item.key}</td>
-                  <td>${item.result}</td>
-                  <td>${item.reason}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </section>
-      ` : "";
-
-      return batchBlock + importBlock + exportBlock + rowTable;
-    }
-
-    function renderFiles() {
-      const files = selectedLog.attachments || [];
-      if (!files.length) {
-        return `<div class="empty">当前日志无导入 / 导出附件</div>`;
-      }
+      const rowTable = (info.rowResults || []).length ? `
+        <table class="mini-table">
+          <thead><tr><th>行号</th><th>业务键</th><th>结果</th><th>原因</th></tr></thead>
+          <tbody>
+            ${info.rowResults.map((item) => `
+              <tr>
+                <td>${item.row}</td>
+                <td>${item.key}</td>
+                <td>${item.result}</td>
+                <td>${item.reason}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="empty">当前批次暂无逐行结果</div>`;
 
       return `
         <section class="section">
-          <h3 class="section-title">附件下载</h3>
-          <div class="file-list">
-            ${files.map((file) => `
-              <div class="file-row">
-                <div class="file-meta">
-                  <strong>${file.name}</strong>
-                  <span>${file.type} / ${file.size} / ${file.permission ? "有下载权限" : "无下载权限"}</span>
-                </div>
-                <button class="button ${file.permission ? "primary" : ""}" type="button" data-download="${file.id}">下载</button>
-              </div>
-            `).join("")}
-          </div>
+          <h3 class="section-title">批量信息</h3>
+          ${kv([
+            ["操作方式", modeMap[selectedLog.operationMode] || selectedLog.operationMode],
+            ["批次 ID", info.batchId],
+            ["对象范围", info.scope],
+            ["总行数", info.totalRows],
+            ["成功行数", info.successRows],
+            ["失败行数", info.failRows],
+            ["统一目标值", info.targetValue],
+            ["导入文件名", info.fileName]
+          ])}
+        </section>
+        <section class="section">
+          <h3 class="section-title">逐行结果</h3>
+          ${rowTable}
         </section>
       `;
     }
 
-    function downloadAttachment(file) {
-      if (!file) return;
-      if (!file.permission) {
-        appendEvidenceEvent("DOWNLOAD_ATTACHMENT", selectedLog, "FAIL", file);
-        showToast("无附件下载权限", "error");
-        return;
+    function renderExport() {
+      const info = selectedLog.exportInfo;
+      if (!info) {
+        return `<div class="empty">当前日志不是导出数据行为</div>`;
       }
-      appendEvidenceEvent("DOWNLOAD_ATTACHMENT", selectedLog, "SUCCESS", file);
-      showToast(`已生成下载记录：${file.name}`, "success");
-      renderDrawer();
-    }
-
-    function appendEvidenceEvent(type, targetLog, result, file) {
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, "0");
-      const time = `2026-05-19 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      serialSeq += 1;
-      const isDownload = type === "DOWNLOAD_ATTACHMENT";
-      const serial = `AUD-ACCESS-${serialSeq}`;
-      const newLog = {
-        serial,
-        time,
-        category: isDownload ? "AUDIT_ATTACHMENT_DOWNLOAD" : "AUDIT_VIEW",
-        action: type,
-        module: "系统管理",
-        resourceType: isDownload ? "AUDIT_ATTACHMENT" : "AUDIT_LOG",
-        resourceId: targetLog.serial,
-        resourceName: isDownload ? (file ? file.name : "审计附件") : "审计详情",
-        actorType: "USER",
-        actor: "user",
-        actorUid: currentUser.uid,
-        actorName: currentUser.name,
-        account: currentUser.account,
-        channel: "MAIN",
-        ip: currentUser.ip,
-        traceId: `trace-access-${serialSeq}`,
-        requestUri: isDownload ? `/api/audit/attachments/${targetLog.serial}/${file ? file.id : "unknown"}` : `/api/audit/logs/${targetLog.serial}`,
-        method: "GET",
-        result,
-        duration: result === "SUCCESS" ? 88 : 42,
-        errorCode: result === "FAIL" ? "NO_ATTACHMENT_PERMISSION" : "",
-        errorMsg: result === "FAIL" ? "无附件下载权限" : "",
-        summary: isDownload ? "下载审计附件" : "查看审计详情",
-        details: [],
-        evidenceTarget: targetLog.serial,
-        userAgent: "Chrome 124 / macOS",
-        requestSnapshot: { targetSerial: targetLog.serial, attachment: file ? file.name : undefined },
-        resultSnapshot: { success: result === "SUCCESS", fileName: file ? file.name : undefined }
-      };
-      logs.unshift(newLog);
-      accessEventsAdded += 1;
-      byId("accessCount").textContent = accessEventsAdded;
-      filteredLogs = applyCurrentFiltersWithoutToast();
-      renderTable();
-    }
-
-    function applyCurrentFiltersWithoutToast() {
-      const f = getFilterValues();
-      const fromTs = f.from ? new Date(f.from).getTime() : Number.NEGATIVE_INFINITY;
-      const toTs = f.to ? new Date(f.to).getTime() : Number.POSITIVE_INFINITY;
-      return logs.filter((log) => {
-        const ts = parseTime(log.time);
-        const actorText = [log.actor, log.actorUid, log.actorName, log.account].join(" ").toLowerCase();
-        return ts >= fromTs &&
-          ts <= toTs &&
-          (!f.actor || actorText.includes(f.actor)) &&
-          (!f.serial || log.serial.toLowerCase().includes(f.serial)) &&
-          (!f.action || log.action === f.action) &&
-          (!f.category || log.category === f.category) &&
-          (!f.module || log.module === f.module) &&
-          (!f.resourceType || log.resourceType.toLowerCase().includes(f.resourceType)) &&
-          (!f.resourceId || String(log.resourceId).toLowerCase().includes(f.resourceId)) &&
-          (!f.result || log.result === f.result) &&
-          (!f.traceId || log.traceId.toLowerCase().includes(f.traceId)) &&
-          (!f.uri || log.requestUri.toLowerCase().includes(f.uri));
-      });
+      return `
+        <section class="section">
+          <h3 class="section-title">导出信息</h3>
+          ${kv([
+            ["导出条件", info.condition],
+            ["导出行数", info.rows],
+            ["字段范围", info.columns],
+            ["文件名", info.fileName],
+            ["文件大小", info.size],
+            ["生成时间", info.generatedAt]
+          ])}
+        </section>
+      `;
     }
 
     function showToast(message, type) {
