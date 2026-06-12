@@ -1706,10 +1706,10 @@
       });
     }
 
-    function openDrawer(serial) {
+    function openDrawer(serial, preferredTab = "basic") {
       selectedLog = logs.find((item) => item.serial === serial);
       if (!selectedLog) return;
-      activeTab = "basic";
+      activeTab = tabs.some((tab) => tab.id === preferredTab) ? preferredTab : "basic";
       renderDrawer();
       byId("drawerMask").classList.add("open");
       byId("drawerMask").setAttribute("aria-hidden", "false");
@@ -2030,6 +2030,12 @@
     });
 
     renderTable();
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialSerial = initialParams.get("serial");
+    const initialTab = initialParams.get("tab") || "basic";
+    if (initialSerial) {
+      openDrawer(initialSerial, initialTab);
+    }
   </script>
 </body>
 </html>
