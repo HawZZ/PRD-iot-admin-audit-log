@@ -2,8 +2,8 @@
 
 Source: 2026-05-19 用户需求输入，`/Users/user/Downloads/IOT 审计日志技术方案.pdf`，[[AIoT-Platform/iot-admin-audit-log/context]]，[[AIoT-Platform/iot-admin-audit-log/decision-log]]
 
-版本：V1.4  
-状态：表级记录与对象搜索评审稿  
+版本：V1.5  
+状态：字段定义与展示规则评审稿  
 最后更新：2026-06-12
 
 ## 1. 产品概述
@@ -199,7 +199,7 @@ flowchart TD
 
 ## 11. 功能需求详述
 
-	### 11.1 审计日志列表
+### 11.1 审计日志列表
 
 筛选项必须和列表字段匹配。除操作列外，列表中的业务字段均应在筛选区有对应筛选项。
 
@@ -232,7 +232,7 @@ flowchart TD
 | 操作类型 | `audit_action` | `UPDATE`，展示为“修改” | 枚举：`LOGIN` 登录、`LOGOUT` 登出、`INSERT` 新增、`UPDATE` 修改、`DELETE` 删除、`EXPORT` 导出 |
 | 操作方式 | `operation_mode` | `BATCH`，展示为“批量操作” | 枚举仅包含 `SINGLE` 单体操作、`BATCH` 批量操作；不承载新增 / 修改 / 删除含义 |
 | 表名 | `table_name` | `t_iot_product` | DML 必填且单条记录只能有一个表名；非 DML 展示 `-`；筛选表名只匹配本条记录的 `table_name` |
-| 业务主键 | `resource_id`，辅助匹配 `object_ids.value` | `2042155626574495745` | 非多租户场景，不展示 `company_code`；支持 product id / device id / 其他 ID 模糊搜索；不混搜对象名称 |
+| 业务主键 | `resource_id`，辅助匹配 `object_ids.value` | `2042155626574495745` | 非多租户场景，不展示 `company_code`；支持 product id / device id / 其他 ID 模糊搜索；仅匹配本条记录实际存储的对象 ID；不混搜对象名称 |
 | 对象名称 | `resource_name` | `LuteOS Air Purifier Pro` | 独立筛选项；采用精确匹配或前缀匹配，避免短名称与业务主键混合导致噪声 |
 | 结果 | `result_status` | `SUCCESS`，展示为“成功” | 枚举：`SUCCESS`、`FAIL` |
 | IP | `client_ip` | `10.24.*.*` | 展示脱敏 IP；不在页面展示完整 IP；支持按脱敏后可见片段查询 |
@@ -313,9 +313,34 @@ flowchart TD
 | 资源类型 | `resource_type` | `PRODUCT` | 原型样例：`PRODUCT`、`WHITE_LIST`、`APP_VERSION`、`ACCOUNT`；实际可随业务模块扩展 |
 | 业务主键 | `resource_id` | `IMPORT-PRODUCT-20260610-01` | 必填；批量操作可记录批次业务键或导入任务业务键 |
 | 业务对象 | `resource_name` | `产品状态批量导入更新` | 展示业务可读名称 |
-| Product ID | `object_ids[type=PRODUCT_ID].value` | `2042155626574495745` | 如本条记录涉及产品对象则展示 |
-| Device ID | `object_ids[type=DEVICE_ID].value` | `DVC-AP-90001` | 如本条记录涉及设备对象则展示 |
-| 其他 ID | `object_ids[type=OTHER_ID].value` | `WL-10284` | 如存在白名单 ID、App 版本 ID、导入任务 ID 等其他对象 ID 则展示 |
+| Product ID | `object_ids[type=PRODUCT_ID].value` | `2042155626574495745` | 详情页固定展示该行；如本条记录涉及产品对象则展示产品 ID，否则展示 `-` |
+| Device ID | `object_ids[type=DEVICE_ID].value` | `DVC-AP-90001` | 详情页固定展示该行；仅当本条记录涉及设备对象时展示设备 ID，否则展示 `-`；不得为产品、产品多语言等非设备记录补充设备 ID |
+| 其他 ID | `object_ids[type=OTHER_ID].value` | `语言: zh-CN` | 详情页固定展示该行；如存在白名单 ID、App 版本 ID、语言、导入任务 ID 等其他对象 ID 则展示；多个值用 `；` 分隔，否则展示 `-` |
+
+操作对象展示和存储规则：
+
+- `object_ids` 仅保存本条审计记录真实涉及的对象 ID，不保存推导对象、关联对象或为了展示完整而补齐的对象 ID。
+- 详情页“Product ID / Device ID / 其他 ID”三行固定展示；未涉及的对象类型展示 `-`，不代表后端需要存储空对象。
+- 产品多语言名称修改属于产品对象和语言维度变更，不涉及具体设备；该类记录应展示 Product ID 和“其他 ID=语言: zh-CN”，Device ID 展示 `-`。
+- 设备配置、设备状态等记录如涉及具体设备，应展示 Device ID；如同时涉及产品上下文，可同时展示 Product ID。
+- `resource_id` 是本条记录的业务主键；`object_ids` 是便于检索和阅读的对象 ID 明细，两者可以相同，也可以按场景不同。
+
+`object_ids` 数据结构定义：
+
+| 字段 | 类型 | 是否必填 | 说明 |
+| --- | --- | --- | --- |
+| `type` | string | 是 | 枚举：`PRODUCT_ID`、`DEVICE_ID`、`OTHER_ID` |
+| `label` | string | 是 | 前端展示标签；`PRODUCT_ID` 固定为 `Product ID`，`DEVICE_ID` 固定为 `Device ID`，`OTHER_ID` 可使用业务标签，如“语言”“白名单 ID”“导入任务 ID” |
+| `value` | string | 是 | 对象 ID 值；必须为日志产生时的快照值，不跟随后续业务对象变更 |
+
+操作对象字段样例：
+
+| 场景 | `resource_type` | `resource_id` | `resource_name` | `object_ids` 展示口径 |
+| --- | --- | --- | --- | --- |
+| 修改产品主表 | `PRODUCT` | `2042155626574495745` | `LuteOS Air Purifier Pro` | Product ID=`2042155626574495745`；Device ID=`-`；其他 ID=`-` |
+| 修改产品多语言名称 | `PRODUCT_I18N` | `2042155626574495745:zh-CN` | `LuteOS Air Purifier Pro` | Product ID=`2042155626574495745`；Device ID=`-`；其他 ID=`语言: zh-CN` |
+| 修改设备配置 | `DEVICE` | `DVC-AP-90001` | `客厅空气净化器` | Product ID=如有产品上下文则展示；Device ID=`DVC-AP-90001`；其他 ID=按场景展示 |
+| 平台批量导入更新 | `PRODUCT` | `IMPORT-PRODUCT-20260610-01` | `产品状态批量导入更新` | Product ID 可在批量 CSV / 逐行结果中展示；详情主对象展示批次业务键和对象范围 |
 
 变更明细字段样例、枚举和限制：
 
@@ -460,6 +485,8 @@ flowchart TD
 | AC-18 | 用户按业务主键搜索 | 输入 product id / device id / 其他 ID 片段 | 模糊命中对象 ID，不混合搜索对象名称 |
 | AC-19 | 用户按对象名称搜索 | 输入产品名称或设备名称 | 仅按对象名称精确或前缀匹配返回 |
 | AC-20 | 批量 DML 记录有 CSV 附件 | 点击变更前 CSV / 变更后 CSV | 下载本表范围内 CSV，表头符合固定格式 |
+| AC-21 | 存在产品多语言名称修改日志 | 打开操作对象详情 | Product ID 展示产品 ID，Device ID 展示 `-`，其他 ID 展示语言；不得出现设备 ID |
+| AC-22 | 存在设备相关修改日志 | 打开操作对象详情 | Device ID 展示实际设备 ID；如本条记录存在产品上下文，可同时展示 Product ID |
 
 ## 16. 测试用例
 
@@ -481,6 +508,8 @@ flowchart TD
 | TC-14 对象 ID 搜索 | 输入 product id / device id / 其他 ID 片段 | 模糊命中业务主键或对象 ID 明细 |
 | TC-15 对象名称搜索 | 输入产品名称或设备名称前缀 | 只按对象名称匹配，不混入业务主键 |
 | TC-16 批量 CSV 下载 | 打开批量 DML 详情并点击两个 CSV 下载 | 下载变更前 / 后 CSV，表头符合 PRD |
+| TC-17 产品多语言操作对象 | 打开“修改产品多语言名称”记录详情 | 操作对象中 Product ID 有值，Device ID 为 `-`，其他 ID 为语言，不展示设备 ID |
+| TC-18 设备操作对象 | 打开设备相关记录详情 | 操作对象中 Device ID 有值；未涉及的对象 ID 类型展示 `-` |
 
 ## 17. 附录
 
@@ -501,7 +530,7 @@ flowchart TD
 | `resource_type` | 资源类型 | 是 |
 | `resource_id` | 业务主键 | 是 |
 | `resource_name` | 业务对象展示名称 | 是 |
-| `object_ids` | 对象 ID 明细，含 Product ID、Device ID、其他 ID | 按场景 |
+| `object_ids` | 对象 ID 明细，仅保存本条审计记录真实涉及的对象 ID；含 `type`、`label`、`value` | 按场景 |
 | `operator_subject` | 操作主体外显标识，例如 `user`、`unknown` | 是 |
 | `operator_uid` | 用户 uid 快照 | 是 |
 | `operator_name` | 用户姓名快照 | 是 |
@@ -545,6 +574,7 @@ flowchart TD
 | 主体类型 | `USER`、`UNKNOWN` |
 | 结果 | `SUCCESS`、`FAIL` |
 | 认证渠道 | `MAIN`、`REGION`、`PUBLIC` 或平台实际渠道编码 |
+| 对象 ID 类型 | `PRODUCT_ID`、`DEVICE_ID`、`OTHER_ID` |
 
 ### 17.4 技术方案对齐要求
 
@@ -561,6 +591,7 @@ flowchart TD
 | 枚举 | 技术文档需补充并约束本 PRD 中的审计分类、操作动作、操作方式、主体类型、结果枚举 |
 | 平台批量动作 | 技术文档需明确批量导入新增 -> `INSERT`、批量删除 -> `DELETE`、批量导入更新 -> `UPDATE`，且按表生成批次审计记录 |
 | 搜索字段 | 技术文档需区分对象 ID 模糊搜索和对象名称精确 / 前缀搜索 |
+| 操作对象字段 | 技术文档需明确 `object_ids` 只保存本条记录真实涉及的 Product ID、Device ID、其他 ID；未涉及类型详情展示 `-`，不得用关联对象补齐 |
 | 批量 CSV | 技术文档需支持批量 DML 本表范围的变更前 / 后 CSV 下载链接、权限和保留策略 |
 | 导出数据 | 技术文档需支持导出条件、导出行数、字段范围、文件名、文件大小、生成时间 |
 | 敏感字段 | 技术文档需补充用户邮箱、用户名字、用户 IP 的脱敏算法；密码、Token、密钥、验证码不得明文落库 |
