@@ -1815,6 +1815,16 @@
     }
 
     function renderObject() {
+      const objectIds = selectedLog.objectIds || [];
+      const valueByType = (type) => {
+        const match = objectIds.find((item) => item.type === type);
+        return match ? match.value : "-";
+      };
+      const otherIds = objectIds
+        .filter((item) => item.type === "OTHER_ID")
+        .map((item) => item.label === "其他 ID" ? item.value : `${item.label}: ${item.value}`)
+        .join("；") || "-";
+
       return `
         <section class="section">
           <h3 class="section-title">操作对象</h3>
@@ -1824,7 +1834,9 @@
             ["资源类型", selectedLog.resourceType],
             ["业务主键", selectedLog.resourceId],
             ["业务对象", selectedLog.resourceName],
-            ...((selectedLog.objectIds || []).map((item) => [item.label, item.value]))
+            ["Product ID", valueByType("PRODUCT_ID")],
+            ["Device ID", valueByType("DEVICE_ID")],
+            ["其他 ID", otherIds]
           ])}
         </section>
       `;
